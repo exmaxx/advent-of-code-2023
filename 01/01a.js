@@ -1,7 +1,7 @@
 import { readFromFile } from '../utils.js'
 
-const lines = readFromFile('input.txt')
-// const lines = readFromFile('example.txt')
+const lines = readFromFile('01a-input.txt')
+// const lines = readFromFile('01a-example.txt')
 
 let sum = 0
 
