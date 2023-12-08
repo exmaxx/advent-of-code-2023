@@ -7,12 +7,27 @@ import { readFromFile, writeToFile } from '../utils.js'
 // destination source length
 // soil        seed
 
+/**
+ * Reads the seed values from the given lines.
+ *
+ * @param {string[]} lines - An array of lines containing seed values.
+ * @returns {number[]} An array of seed values.
+ */
 function readSeeds(lines) {
   const line = lines[0]
 
   return line.match(/\d+/g).map((match) => Number(match))
 }
 
+/**
+ * Reads map groups from an array of lines.
+ *
+ * Each map group consists of maps that represented by a set of numbers. Each map is on
+ * a single line. A map consist of three numbers - destination, source and length.
+ *
+ * @param {string[]} lines - An array of lines representing the map groups.
+ * @returns {number[][][]} - An array of map groups, where each map group is an array of arrays of numbers.
+ */
 function readMapGroups(lines) {
   let maps = []
   let mapGroup = []
@@ -41,6 +56,13 @@ function readMapGroups(lines) {
   return maps
 }
 
+/**
+ * Creates intervals from an array of seeds and lengths. The arrays contain
+ * pairs of [from, to] values.
+ *
+ * @param {number[]} seeds - Array of seed values.
+ * @returns {number[][]} - Array of intervals.
+ */
 function createIntervals(seeds) {
   const intervals = []
 
@@ -54,121 +76,14 @@ function createIntervals(seeds) {
   return intervals
 }
 
-function calculateMinLocationForIntervals(seedIntervals, mapGroups) {
-  const minLocations = []
-
-  for (const seedInterval of seedIntervals) {
-    minLocations.push(calculateMinLocationForInterval(seedInterval, mapGroups))
-  }
-
-  return minLocations
-}
-
-function splitIntervalByMapGroup (seedInterval, mapGroup) {
-  let splitIntervals = []
-  const [from, to] = seedInterval
-  let current = from
-
-  while (current < to) {
-    const map = findMap(current, mapGroup)
-
-    if (map) {
-      const [_, source, length] = map
-      const mapMax = source + length - 1
-
-      splitIntervals.push([current, mapMax < to ? mapMax : to])
-      current = mapMax + 1
-    } else {
-      const closestMap = findClosestLargerMap(current, mapGroup)
-
-      if (closestMap) {
-        const closestLarger = closestMap[1]
-        splitIntervals.push([current, closestLarger - 1])
-        current = closestLarger
-      } else {
-        current = to
-      }
-    }
-  }
-
-  return splitIntervals
-}
-
-function mapNextIntervals(intervals, mapGroup) {
-  const nextIntervals = []
-
-  for (const interval of intervals) {
-    const map = findMap(interval[0], mapGroup)
-    const nextInterval = mapInterval(interval, map)
-    nextIntervals.push(nextInterval)
-  }
-
-  return nextIntervals
-}
-
-function calculateMinLocationForInterval(seedInterval, mapGroups) {
-  console.log('seedInterval:', seedInterval)
-  // let mappedValue = seed
-
-  let nextIntervals = [seedInterval]
-
-  for (const mapGroup of mapGroups) {
-    const newIntervals = []
-    for (const nextInterval of nextIntervals) {
-      const splitIntervals = splitIntervalByMapGroup(nextInterval, mapGroup)
-      newIntervals.push(...mapNextIntervals(splitIntervals, mapGroup))
-    }
-    nextIntervals.push(...newIntervals)
-  }
-
-  console.log('nextIntervals:', nextIntervals)
-
-  return Math.min(...nextIntervals.flatMap(interval => interval[0]))
-
-  // for (const nextInterval of nextIntervals) {
-  //   calculateMinLocationForInterval(nextInterval)
-  // }
-}
-
-function findMap(value, mapGroup) {
-  for (const map of mapGroup) {
-    const [_, source, length] = map
-
-    if (source <= value && value <= source + length - 1) {
-      return map
-    }
-  }
-}
-
-function findClosestLargerMap(value, mapGroup) {
-  let closestMap = null
-
-  for (const map of mapGroup) {
-    const source = map[1]
-    const closestSource = closestMap?.[1]
-
-    if (value <= source && source < closestSource) {
-      closestMap = map
-    }
-  }
-
-  return closestMap
-}
-
-function mapValue(value, map) {
-  const [destination, source] = map
-  const diff = value - source
-  return destination + diff
-}
-
-function mapInterval(interval, map) {
-  const [destination, source] = map
-  const [from, to] = interval
-
-  const diffFrom = from - source
-  const diffTo = to - source
-
-  return [destination + diffFrom, destination + diffTo ]
+/**
+ * Sorts a map group by the source ID.
+ *
+ * @param {number[][]} mapGroup - The map group to be sorted.
+ * @returns {number[][]} - The sorted map group.
+ */
+function sortMapGroupBySourceId(mapGroup) {
+  return mapGroup.toSorted((a, z) => a[1] - z[1])
 }
 
 /**
@@ -181,12 +96,15 @@ function main() {
   const seeds = readSeeds(lines)
   const mapGroups = readMapGroups(lines)
 
-  const seedIntervals = createIntervals(seeds)
-  // const locations = calculateMinLocationForIntervals(seedIntervals, mapGroups)
-  const locations = calculateMinLocationForIntervals([seedIntervals[0]], mapGroups)
-  const minLocation = Math.min(...locations)
+  const mapGroupsSorted = mapGroups.map((mapGroup) =>
+    sortMapGroupBySourceId(mapGroup)
+  )
 
-  console.log('minLocation:', minLocation)
+  console.log('mapGroupsSorted:', mapGroupsSorted)
+
+  const seedIntervals = createIntervals(seeds)
+
+  console.log('seedIntervals:', seedIntervals)
 }
 
 // 🚀
